@@ -21,7 +21,6 @@
     building: false,
     spinning: false,
     winnerIndex: -1,
-    winners: [],
     flyers: [],
     confetti: [],
     fxRunning: false,
@@ -122,8 +121,6 @@
         throw new Error(`No one in "${file.name}" has raffle = Y (${excluded} row(s) excluded).`);
       }
       state.entries = shuffle(entries);
-      state.winners = [];
-      renderWinners();
       $("summary").textContent =
         `${entries.length} name${entries.length === 1 ? "" : "s"} in the draw` +
         (excluded ? ` · ${excluded} excluded (raffle ≠ Y)` : "") +
@@ -138,27 +135,94 @@
 
   // ---------- Views ----------
 
+  const onWheelView = () => !$("wheelWrap").classList.contains("hidden");
+
   function showView(which) {
     $("uploadView").classList.toggle("hidden", which !== "upload");
-    $("wheelView").classList.toggle("hidden", which !== "wheel");
+    $("wheelWrap").classList.toggle("hidden", which !== "wheel");
     $("newFileBtn").classList.toggle("hidden", which !== "wheel");
-    if (which === "upload") $("summary").textContent = "";
-    if (which === "wheel") resizeWheel();
+    if (which === "upload") {
+      $("summary").textContent = "";
+      $("wheelHint").textContent = "";
+    }
+    if (which === "wheel") layout();
   }
 
-  function renderWinners() {
-    $("winnerList").innerHTML = "";
-    for (const w of state.winners) {
-      const li = document.createElement("li");
-      li.textContent = w.name;
-      if (w.account) {
-        const span = document.createElement("span");
-        span.textContent = w.account;
-        li.appendChild(span);
-      }
-      $("winnerList").appendChild(li);
+  // ---------- Layout: title across the top, wheel fills the rest ----------
+
+  const TITLE = "Differentia Consulting Customer Day 2026 Raffle";
+  const SVG_NS = "http://www.w3.org/2000/svg";
+
+  function layout() {
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const titleSize = titleFontSize(vw, vh);
+    const top = titleSize * 1.55 + 26;  // title plus its two rows of lights
+    const size = Math.max(200, Math.min(vh - top - 64, vw * 0.92));
+    const left = (vw - size) / 2;
+
+    for (const el of [$("wheelWrap"), $("uploadView")]) {
+      Object.assign(el.style, { left: `${left}px`, top: `${top}px`, width: `${size}px`, height: `${size}px` });
     }
-    $("noWinners").classList.toggle("hidden", state.winners.length > 0);
+
+    layoutTitle(vw, vh, titleSize);
+    resizeWheel();
+  }
+
+  function makeTitleText(cls) {
+    const text = document.createElementNS(SVG_NS, "text");
+    text.setAttribute("class", cls);
+    text.setAttribute("text-anchor", "middle");
+    text.textContent = TITLE;
+    $("title").appendChild(text);
+    return text;
+  }
+
+  function titleFontSize(vw, vh) {
+    // Measure at 100px, then scale to span the window, capped so it doesn't eat the wheel's height.
+    const probe = makeTitleText("sign-face");
+    probe.style.fontSize = "100px";
+    const width100 = probe.getComputedTextLength();
+    probe.remove();
+    return Math.min((100 * (vw - 64)) / width100, vh * 0.075);
+  }
+
+  function lightRow(svg, x1, x2, y, fontSize) {
+    const gap = Math.max(12, fontSize * 0.42);
+    const row = document.createElementNS(SVG_NS, "path");
+    row.setAttribute("class", "light-row bulbs bulbs-a chase");
+    row.setAttribute("d", `M ${x1} ${y} H ${x2}`);
+    row.setAttribute("stroke-width", Math.max(4, fontSize * 0.14));
+    row.setAttribute("stroke-dasharray", `0 ${gap}`);
+    row.style.setProperty("--gap", `${gap}px`);
+    svg.appendChild(row);
+  }
+
+  function layoutTitle(vw, vh, fontSize) {
+    const svg = $("title");
+    svg.setAttribute("viewBox", `0 0 ${vw} ${vh}`);
+    svg.querySelectorAll("text, .light-row").forEach((t) => t.remove());
+
+    // Chasing rows of lights above and below the lettering.
+    const baseline = 14 + fontSize * 1.1;
+    lightRow(svg, 16, vw - 16, baseline - fontSize * 0.98, fontSize);
+    lightRow(svg, 16, vw - 16, baseline + fontSize * 0.36, fontSize);
+
+    // Lit letters: dark edge, glowing face, and small blinking bulbs around each outline.
+    const bulbGap = fontSize * 0.2;
+    const layers = [
+      ["sign-edge", { "stroke-width": fontSize * 0.17 }],
+      ["sign-face", {}],
+      ["bulbs bulbs-a", { "stroke-width": fontSize * 0.045, "stroke-dasharray": `0 ${bulbGap}` }],
+      ["bulbs bulbs-b", { "stroke-width": fontSize * 0.045, "stroke-dasharray": `0 ${bulbGap}`, "stroke-dashoffset": bulbGap / 2 }],
+    ];
+    for (const [cls, attrs] of layers) {
+      const text = makeTitleText(cls);
+      text.setAttribute("x", vw / 2);
+      text.setAttribute("y", baseline);
+      text.style.fontSize = `${fontSize}px`;
+      for (const [k, v] of Object.entries(attrs)) text.setAttribute(k, v);
+    }
   }
 
   // ---------- Wheel drawing ----------
@@ -192,14 +256,42 @@
 
   function labelFontSize(radius, n) {
     const seg = (2 * Math.PI) / n;
-    return Math.min(radius * 0.065, radius * seg * 0.55);
+    return Math.min(radius * 0.072, radius * seg * 0.5);
   }
 
-  function fitText(ctx, text, maxWidth) {
-    if (ctx.measureText(text).width <= maxWidth) return text;
-    let t = text;
-    while (t.length > 1 && ctx.measureText(t + "…").width > maxWidth) t = t.slice(0, -1);
-    return t + "…";
+  const labelFont = (size) => `600 ${size}px "Segoe UI", system-ui, sans-serif`;
+
+  // Size each name so it stays inside its slice: slices narrow towards the hub,
+  // so a label can only reach in as far as the slice is still taller than the text.
+  // Long names shrink a little first, and are only truncated as a last resort.
+  let labelCache = { key: "", labels: [] };
+
+  function labelLayout(radius) {
+    const n = state.entries.length;
+    const key = `${radius}|${state.entries.map((e) => e.name).join("\u0001")}`;
+    if (labelCache.key === key) return labelCache.labels;
+
+    const seg = (2 * Math.PI) / n;
+    const base = labelFontSize(radius, n);
+    const hubEdge = radius * 0.2 + 10;
+    const outerEdge = radius - 12;
+    const maxWidth = (size) => outerEdge - Math.max(hubEdge, (size * 1.1) / seg);
+
+    const labels = state.entries.map(({ name }) => {
+      for (let size = base; size >= base * 0.7; size -= 0.5) {
+        wctx.font = labelFont(size);
+        if (wctx.measureText(name).width <= maxWidth(size)) return { text: name, size };
+      }
+      const size = base * 0.7;
+      wctx.font = labelFont(size);
+      const limit = maxWidth(size);
+      let t = name;
+      while (t.length > 1 && wctx.measureText(t + "…").width > limit) t = t.slice(0, -1);
+      return { text: t + "…", size };
+    });
+
+    labelCache = { key, labels };
+    return labels;
   }
 
   function drawWheel() {
@@ -232,9 +324,8 @@
     if (n === 0) return;
 
     const seg = (2 * Math.PI) / n;
-    const fontSize = labelFontSize(radius, n);
-    const showLabels = fontSize >= 6;
-    wctx.font = `600 ${fontSize}px "Segoe UI", system-ui, sans-serif`;
+    const showLabels = labelFontSize(radius, n) >= 6;
+    const labels = showLabels ? labelLayout(radius) : [];
     wctx.textAlign = "right";
     wctx.textBaseline = "middle";
 
@@ -259,7 +350,8 @@
         wctx.translate(cx, cy);
         wctx.rotate(start + seg / 2);
         wctx.fillStyle = "#fff";
-        wctx.fillText(fitText(wctx, state.entries[i].name, radius * 0.7), radius - 12, 0);
+        wctx.font = labelFont(labels[i].size);
+        wctx.fillText(labels[i].text, radius - 12, 0);
         wctx.restore();
       }
     }
@@ -476,20 +568,27 @@
     launchConfetti();
   }
 
-  function closeWinner(remove) {
+  function closeWinner(redraw) {
     const w = state.entries[state.winnerIndex];
-    state.winners.push(w);
-    renderWinners();
-    if (remove) state.entries.splice(state.winnerIndex, 1);
-    state.winnerIndex = -1;
     $("winnerModal").classList.add("hidden");
-    drawWheel();
 
-    const left = state.entries.length;
-    $("hub").disabled = left === 0;
-    $("wheelHint").textContent = left === 0
-      ? "Everyone has won — load another file to start again."
-      : "Click the wheel (or press Space) to spin again!";
+    if (redraw) {
+      // Winner isn't here: take them off the wheel and spin again.
+      state.entries.splice(state.winnerIndex, 1);
+      state.winnerIndex = -1;
+      drawWheel();
+      if (state.entries.length === 0) {
+        $("hub").disabled = true;
+        $("wheelHint").textContent = "No names left on the wheel.";
+      } else {
+        setTimeout(spin, 400);
+      }
+      return;
+    }
+
+    state.winnerIndex = -1;
+    $("hub").disabled = false;
+    $("wheelHint").textContent = `🏆 Winner: ${w.name}${w.account ? ` (${w.account})` : ""}`;
   }
 
   // ---------- Events ----------
@@ -514,8 +613,8 @@
 
   wheelCanvas.addEventListener("click", spin);
   $("hub").addEventListener("click", spin);
-  $("removeBtn").addEventListener("click", () => closeWinner(true));
-  $("keepBtn").addEventListener("click", () => closeWinner(false));
+  $("closeBtn").addEventListener("click", () => closeWinner(false));
+  $("redrawBtn").addEventListener("click", () => closeWinner(true));
 
   $("newFileBtn").addEventListener("click", () => {
     if (state.spinning || state.building) return;
@@ -529,15 +628,16 @@
   });
 
   document.addEventListener("keydown", (e) => {
-    if ($("wheelView").classList.contains("hidden")) return;
+    if (!onWheelView()) return;
     if (e.code === "Space") {
       e.preventDefault();
       if ($("winnerModal").classList.contains("hidden")) spin();
-    } else if (e.code === "Enter" && !$("winnerModal").classList.contains("hidden")) {
-      closeWinner(true);
+    } else if ((e.code === "Enter" || e.code === "Escape") && !$("winnerModal").classList.contains("hidden")) {
+      e.preventDefault();
+      closeWinner(false);
     }
   });
 
-  window.addEventListener("resize", resizeWheel);
-  resizeWheel();
+  window.addEventListener("resize", layout);
+  layout();
 })();

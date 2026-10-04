@@ -1,32 +1,22 @@
 * { box-sizing: border-box; }
 
 :root {
-  --bg: #0f1b2d;
-  --panel: #18273f;
-  --text: #f4f6fb;
-  --muted: #9fb0c8;
+  --orange: #f47b20;
+  --orange-dark: #c4520a;
+  --panel: #1d2638;
+  --text: #ffffff;
+  --muted: #ffe2c7;
   --accent: #ffc94a;
 }
 
 html, body {
   margin: 0;
   height: 100%;
-  background: radial-gradient(circle at 50% 30%, #1d3355 0%, var(--bg) 70%);
+  overflow: hidden;
+  background: radial-gradient(ellipse at 50% 45%, #ff9a3c 0%, var(--orange) 45%, var(--orange-dark) 100%);
   color: var(--text);
   font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
 }
-
-body { display: flex; flex-direction: column; }
-
-header {
-  display: flex;
-  align-items: center;
-  gap: 24px;
-  padding: 16px 32px;
-}
-header h1 { margin: 0; font-size: 28px; letter-spacing: 0.5px; }
-.summary { color: var(--muted); flex: 1; }
-.header-actions { display: flex; gap: 8px; }
 
 button {
   font: inherit;
@@ -40,68 +30,85 @@ button {
 }
 button:hover { filter: brightness(1.08); }
 button.ghost {
-  background: transparent;
+  background: rgba(0, 0, 0, 0.12);
   color: var(--text);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.55);
 }
 
 .hidden { display: none !important; }
-.muted { color: var(--muted); }
 
-.view { flex: 1; display: flex; }
+/* ---------- Marquee title ---------- */
+.title {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 1;
+}
+.title text {
+  font-family: "Arial Black", "Segoe UI Black", "Segoe UI", sans-serif;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+}
+.title .sign-edge { fill: none; stroke: #4a1500; stroke-linejoin: round; }
+.title .sign-face { fill: #ffd84a; filter: url(#glow); }
+.title .bulbs { fill: none; stroke-linecap: round; filter: url(#glow); }
+.title .bulbs-a { stroke: #fffdf0; animation: blink 0.9s steps(1) infinite; }
+.title .bulbs-b { stroke: #fff2b0; animation: blink 0.9s steps(1) infinite -0.45s; }
+.title .chase { animation: chase 1.2s linear infinite; }
 
-/* Upload */
-#uploadView {
+@keyframes blink {
+  0% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+@keyframes chase {
+  to { stroke-dashoffset: calc(-1 * var(--gap)); }
+}
+
+/* ---------- Upload ---------- */
+.upload {
+  position: fixed;
+  display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 12px;
+  z-index: 2;
 }
 .drop-zone {
   width: min(560px, 90vw);
-  padding: 56px 24px;
-  border: 3px dashed rgba(255, 255, 255, 0.35);
+  padding: 48px 24px;
+  border: 3px dashed rgba(255, 255, 255, 0.75);
   border-radius: 24px;
+  background: rgba(0, 0, 0, 0.12);
   text-align: center;
   cursor: pointer;
-  transition: background 0.2s, border-color 0.2s;
+  transition: background 0.2s;
 }
-.drop-zone:hover, .drop-zone.over {
-  background: rgba(255, 255, 255, 0.06);
-  border-color: var(--accent);
-}
+.drop-zone:hover, .drop-zone.over { background: rgba(0, 0, 0, 0.25); border-color: #fff; }
 .drop-icon { font-size: 56px; }
 .drop-title { font-size: 22px; font-weight: 600; margin-top: 8px; }
 .drop-sub { color: var(--muted); margin-top: 6px; }
-.hint { color: var(--muted); }
 .error {
-  color: #ffb3b3;
-  background: rgba(255, 80, 80, 0.12);
+  color: #fff;
+  background: rgba(140, 0, 0, 0.55);
   padding: 10px 16px;
   border-radius: 10px;
   max-width: 560px;
 }
 
-/* Wheel */
-#wheelView { align-items: stretch; gap: 24px; padding: 0 32px 24px; }
-.stage {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-}
+/* ---------- Wheel ---------- */
 .wheel-wrap {
-  position: relative;
-  width: min(78vh, 62vw);
-  aspect-ratio: 1;
+  position: fixed; /* positioned and sized by app.js */
+  z-index: 2;
 }
 #wheel {
   width: 100%;
   height: 100%;
   display: block;
   cursor: pointer;
-  filter: drop-shadow(0 12px 30px rgba(0, 0, 0, 0.5));
+  filter: drop-shadow(0 14px 30px rgba(80, 20, 0, 0.55));
 }
 .pointer {
   position: absolute;
@@ -112,8 +119,8 @@ button.ghost {
   height: 0;
   border-left: 22px solid transparent;
   border-right: 22px solid transparent;
-  border-top: 46px solid var(--accent);
-  filter: drop-shadow(0 3px 4px rgba(0, 0, 0, 0.5));
+  border-top: 46px solid #fff;
+  filter: drop-shadow(0 3px 4px rgba(0, 0, 0, 0.55));
   z-index: 2;
 }
 .hub {
@@ -126,31 +133,34 @@ button.ghost {
   padding: 0;
   border-radius: 50%;
   border: 5px solid #fff;
-  font-size: clamp(14px, 2.2vmin, 26px);
+  font-size: clamp(14px, 2.4vmin, 28px);
   letter-spacing: 1px;
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
 }
 .hub:disabled { cursor: default; filter: grayscale(0.4); }
-.wheel-hint { color: var(--muted); font-size: 18px; margin: 16px 0 0; min-height: 1.4em; }
 
-.winners {
-  width: 280px;
-  background: var(--panel);
-  border-radius: 16px;
-  padding: 16px 20px;
-  overflow-y: auto;
-  max-height: calc(100vh - 110px);
+/* ---------- Footer ---------- */
+footer {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 0 20px;
+  z-index: 3;
 }
-.winners h2 { margin: 0 0 8px; font-size: 18px; }
-.winners ol { margin: 0; padding-left: 22px; }
-.winners li { margin: 8px 0; }
-.winners li span { display: block; color: var(--muted); font-size: 13px; }
+.summary { flex: 1; color: var(--muted); font-size: 14px; }
+.wheel-hint { flex: 1; text-align: center; font-size: 18px; font-weight: 600; margin: 0; }
+.footer-actions { flex: 1; display: flex; gap: 8px; justify-content: flex-end; }
 
-/* Winner modal */
+/* ---------- Winner modal ---------- */
 .modal {
   position: fixed;
   inset: 0;
-  background: rgba(5, 10, 20, 0.7);
+  background: rgba(30, 10, 0, 0.6);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -158,7 +168,7 @@ button.ghost {
 }
 .modal-card {
   background: var(--panel);
-  border: 2px solid var(--accent);
+  border: 3px solid var(--accent);
   border-radius: 24px;
   padding: 40px 56px;
   text-align: center;
@@ -167,7 +177,7 @@ button.ghost {
 }
 .modal-label { color: var(--accent); font-size: 22px; font-weight: 600; }
 .winner-name { font-size: clamp(36px, 6vw, 72px); font-weight: 800; margin: 16px 0 4px; }
-.winner-account { font-size: 24px; color: var(--muted); }
+.winner-account { font-size: 24px; color: #b9c4d8; }
 .modal-actions { display: flex; gap: 12px; justify-content: center; margin-top: 28px; flex-wrap: wrap; }
 
 @keyframes pop {

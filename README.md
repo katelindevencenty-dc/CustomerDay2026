@@ -14,12 +14,13 @@ An Excel file (`.xlsx`, `.xls` or `.csv`) with a table like this:
 |---|---|---|---|---|---|
 | Mohammed Al Radi | Alfanar - London | Accepted | Y | Y | Y |
 
-- Only rows with **raffle = Y** go into the draw. The header shows how many were excluded.
+- Only rows with **raffle = Y** go into the draw. The bottom-left corner shows how many were excluded.
 - `contact_name` and `raffle` are required; `account_name` is shown under the winner's name.
 - The table can be on any sheet and doesn't need to start in cell A1.
 
 ## During the raffle
 
 - Click the wheel, the SPIN button, or press **Space** to spin.
-- After a winner is shown, choose **Remove from wheel** (press **Enter**) so they can't win twice, or **Keep on wheel**.
-- Winners are listed on the right. Use the sound button to mute the ticks and fanfare.
+- When the winner is announced, click **Close** (or press **Enter**). Their name stays at the bottom of the screen.
+- If the winner isn't in the room, click **Not here? Remove & redraw** to take them off the wheel and spin again.
+- Press **F11** for full screen. Use the sound button to mute the ticks and fanfare.
