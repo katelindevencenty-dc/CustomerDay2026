@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Customer Day 2026 Raffle</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>Customer Day 2026 Raffle</h1>
+    <div id="summary" class="summary"></div>
+    <div class="header-actions">
+      <button id="soundBtn" class="ghost" title="Toggle sound">🔊 Sound on</button>
+      <button id="newFileBtn" class="ghost hidden">Load another file</button>
+    </div>
+  </header>
+
+  <!-- Step 1: upload -->
+  <section id="uploadView" class="view">
+    <label id="dropZone" class="drop-zone" for="fileInput">
+      <div class="drop-icon">📄</div>
+      <div class="drop-title">Drop the guest list Excel file here</div>
+      <div class="drop-sub">or click to choose a file (.xlsx, .xls, .csv)</div>
+      <input id="fileInput" type="file" accept=".xlsx,.xls,.csv" hidden>
+    </label>
+    <p class="hint">Only rows with <strong>raffle = Y</strong> are entered into the draw.</p>
+    <p id="error" class="error hidden"></p>
+  </section>
+
+  <!-- Step 2: wheel -->
+  <section id="wheelView" class="view hidden">
+    <div class="stage">
+      <div class="wheel-wrap">
+        <div class="pointer"></div>
+        <canvas id="wheel"></canvas>
+        <button id="hub" class="hub" disabled>SPIN</button>
+      </div>
+      <p id="wheelHint" class="wheel-hint">Building the wheel…</p>
+    </div>
+    <aside class="winners">
+      <h2>Winners</h2>
+      <ol id="winnerList"></ol>
+      <p id="noWinners" class="muted">No winners drawn yet.</p>
+    </aside>
+  </section>
+
+  <!-- Winner announcement -->
+  <div id="winnerModal" class="modal hidden">
+    <div class="modal-card">
+      <div class="modal-label">🎉 And the winner is… 🎉</div>
+      <div id="winnerName" class="winner-name"></div>
+      <div id="winnerAccount" class="winner-account"></div>
+      <div class="modal-actions">
+        <button id="removeBtn">Remove from wheel &amp; continue</button>
+        <button id="keepBtn" class="ghost">Keep on wheel &amp; continue</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Full-screen layer for the flying names and confetti -->
+  <canvas id="fx"></canvas>
+
+  <script src="vendor/xlsx.full.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

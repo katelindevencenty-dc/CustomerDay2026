@@ -1,0 +1,185 @@
+* { box-sizing: border-box; }
+
+:root {
+  --bg: #0f1b2d;
+  --panel: #18273f;
+  --text: #f4f6fb;
+  --muted: #9fb0c8;
+  --accent: #ffc94a;
+}
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: radial-gradient(circle at 50% 30%, #1d3355 0%, var(--bg) 70%);
+  color: var(--text);
+  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+}
+
+body { display: flex; flex-direction: column; }
+
+header {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 16px 32px;
+}
+header h1 { margin: 0; font-size: 28px; letter-spacing: 0.5px; }
+.summary { color: var(--muted); flex: 1; }
+.header-actions { display: flex; gap: 8px; }
+
+button {
+  font: inherit;
+  font-weight: 600;
+  padding: 10px 18px;
+  border-radius: 999px;
+  border: none;
+  background: var(--accent);
+  color: #1b1b1b;
+  cursor: pointer;
+}
+button:hover { filter: brightness(1.08); }
+button.ghost {
+  background: transparent;
+  color: var(--text);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.hidden { display: none !important; }
+.muted { color: var(--muted); }
+
+.view { flex: 1; display: flex; }
+
+/* Upload */
+#uploadView {
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+.drop-zone {
+  width: min(560px, 90vw);
+  padding: 56px 24px;
+  border: 3px dashed rgba(255, 255, 255, 0.35);
+  border-radius: 24px;
+  text-align: center;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+.drop-zone:hover, .drop-zone.over {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: var(--accent);
+}
+.drop-icon { font-size: 56px; }
+.drop-title { font-size: 22px; font-weight: 600; margin-top: 8px; }
+.drop-sub { color: var(--muted); margin-top: 6px; }
+.hint { color: var(--muted); }
+.error {
+  color: #ffb3b3;
+  background: rgba(255, 80, 80, 0.12);
+  padding: 10px 16px;
+  border-radius: 10px;
+  max-width: 560px;
+}
+
+/* Wheel */
+#wheelView { align-items: stretch; gap: 24px; padding: 0 32px 24px; }
+.stage {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.wheel-wrap {
+  position: relative;
+  width: min(78vh, 62vw);
+  aspect-ratio: 1;
+}
+#wheel {
+  width: 100%;
+  height: 100%;
+  display: block;
+  cursor: pointer;
+  filter: drop-shadow(0 12px 30px rgba(0, 0, 0, 0.5));
+}
+.pointer {
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 22px solid transparent;
+  border-right: 22px solid transparent;
+  border-top: 46px solid var(--accent);
+  filter: drop-shadow(0 3px 4px rgba(0, 0, 0, 0.5));
+  z-index: 2;
+}
+.hub {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 18%;
+  aspect-ratio: 1;
+  padding: 0;
+  border-radius: 50%;
+  border: 5px solid #fff;
+  font-size: clamp(14px, 2.2vmin, 26px);
+  letter-spacing: 1px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
+}
+.hub:disabled { cursor: default; filter: grayscale(0.4); }
+.wheel-hint { color: var(--muted); font-size: 18px; margin: 16px 0 0; min-height: 1.4em; }
+
+.winners {
+  width: 280px;
+  background: var(--panel);
+  border-radius: 16px;
+  padding: 16px 20px;
+  overflow-y: auto;
+  max-height: calc(100vh - 110px);
+}
+.winners h2 { margin: 0 0 8px; font-size: 18px; }
+.winners ol { margin: 0; padding-left: 22px; }
+.winners li { margin: 8px 0; }
+.winners li span { display: block; color: var(--muted); font-size: 13px; }
+
+/* Winner modal */
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(5, 10, 20, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+.modal-card {
+  background: var(--panel);
+  border: 2px solid var(--accent);
+  border-radius: 24px;
+  padding: 40px 56px;
+  text-align: center;
+  max-width: 90vw;
+  animation: pop 0.45s cubic-bezier(0.2, 1.4, 0.4, 1);
+}
+.modal-label { color: var(--accent); font-size: 22px; font-weight: 600; }
+.winner-name { font-size: clamp(36px, 6vw, 72px); font-weight: 800; margin: 16px 0 4px; }
+.winner-account { font-size: 24px; color: var(--muted); }
+.modal-actions { display: flex; gap: 12px; justify-content: center; margin-top: 28px; flex-wrap: wrap; }
+
+@keyframes pop {
+  from { transform: scale(0.6); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+#fx {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 20;
+}
