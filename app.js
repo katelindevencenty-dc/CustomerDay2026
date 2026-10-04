@@ -534,14 +534,15 @@
     const jitter = (randFloat() - 0.5) * 0.7 * seg; // don't always stop dead-centre
     const target = POINTER_ANGLE - (winner + 0.5) * seg - jitter;
     const startRot = state.rotation;
-    const endRot = startRot + mod(target - startRot, 2 * Math.PI) + 2 * Math.PI * (6 + randInt(3));
-    const duration = 7000 + randInt(2000);
+    const endRot = startRot + mod(target - startRot, 2 * Math.PI) + 2 * Math.PI * (8 + randInt(3));
+    const duration = 11000 + randInt(2500);
     const t0 = performance.now();
     let lastIndex = indexUnderPointer();
 
     const frame = (now) => {
       const t = Math.min(1, (now - t0) / duration);
-      const eased = 1 - (1 - t) ** 4;
+      // Cubic ease-out: a long, slow crawl past the last few names before it stops.
+      const eased = 1 - (1 - t) ** 3;
       state.rotation = startRot + (endRot - startRot) * eased;
       drawWheel();
 
