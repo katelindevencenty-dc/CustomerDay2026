@@ -21,6 +21,7 @@ An Excel file (`.xlsx`, `.xls` or `.csv`) with a table like this:
 ## During the raffle
 
 - Click the wheel, the SPIN button, or press **Space** to spin.
-- When the winner is announced, click **Close** (or press **Enter**). Their name stays at the bottom of the screen.
-- If the winner isn't in the room, click **Not here? Remove & redraw** to take them off the wheel and spin again.
+- When the winner is announced, click **Close** (or press **Enter**). They're added to the **Winners** list beside the wheel and taken off the wheel, ready for the next spin. Keep spinning for as many prizes as you have.
+- If the winner isn't in the room, click **Not here? Remove & redraw** to take them off the wheel (without adding them to the winners list) and spin again.
+- **Load another file** starts a fresh raffle and clears the winners list.
 - Press **F11** for full screen. Use the sound button to mute the ticks and fanfare.

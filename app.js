@@ -16,7 +16,9 @@
 
   const state = {
     entries: [],      // [{ name, account }] currently on the wheel
-    filled: [],       // during the build animation: which slices have landed
+    winners: [],      // [{ name, account }] in the order they were drawn
+    source: null,     // { fileName, total, excluded } for the footer summary
+    filled: [],      // during the build animation: which slices have landed
     rotation: 0,
     building: false,
     spinning: false,
@@ -121,16 +123,24 @@
         throw new Error(`No one in "${file.name}" has raffle = Y (${excluded} row(s) excluded).`);
       }
       state.entries = shuffle(entries);
-      $("summary").textContent =
-        `${entries.length} name${entries.length === 1 ? "" : "s"} in the draw` +
-        (excluded ? ` · ${excluded} excluded (raffle ≠ Y)` : "") +
-        ` · ${file.name}`;
+      state.winners = [];
+      state.source = { fileName: file.name, total: entries.length, excluded };
+      updateSummary();
       showView("wheel");
       startBuild();
     } catch (err) {
       $("error").textContent = err.message;
       $("error").classList.remove("hidden");
     }
+  }
+
+  function updateSummary() {
+    const { fileName, total, excluded } = state.source;
+    const left = state.entries.length;
+    $("summary").textContent =
+      (left === total ? `${total} name${total === 1 ? "" : "s"} in the draw` : `${left} of ${total} names left`) +
+      (excluded ? ` · ${excluded} excluded (raffle ≠ Y)` : "") +
+      ` · ${fileName}`;
   }
 
   // ---------- Views ----------
@@ -145,7 +155,24 @@
       $("summary").textContent = "";
       $("wheelHint").textContent = "";
     }
+    renderWinners();
     if (which === "wheel") layout();
+  }
+
+  function renderWinners() {
+    const panel = $("winnersPanel");
+    $("winnersList").replaceChildren(...state.winners.map(({ name, account }) => {
+      const li = document.createElement("li");
+      li.textContent = name;
+      if (account) {
+        const span = document.createElement("span");
+        span.textContent = account;
+        li.appendChild(span);
+      }
+      return li;
+    }));
+    panel.classList.toggle("hidden", !onWheelView() || state.winners.length === 0);
+    panel.scrollTop = panel.scrollHeight; // keep the latest winner in view
   }
 
   // ---------- Layout: title across the top, wheel fills the rest ----------
@@ -164,6 +191,15 @@
     for (const el of [$("wheelWrap"), $("uploadView")]) {
       Object.assign(el.style, { left: `${left}px`, top: `${top}px`, width: `${size}px`, height: `${size}px` });
     }
+
+    // Winners log in the space to the right of the wheel.
+    const panelWidth = Math.max(180, Math.min(340, left - 48));
+    Object.assign($("winnersPanel").style, {
+      left: `${Math.min(left + size + 24, vw - panelWidth - 16)}px`,
+      top: `${top}px`,
+      width: `${panelWidth}px`,
+      maxHeight: `${size}px`,
+    });
 
     layoutTitle(vw, vh, titleSize);
     resizeWheel();
@@ -573,23 +609,26 @@
     const w = state.entries[state.winnerIndex];
     $("winnerModal").classList.add("hidden");
 
-    if (redraw) {
-      // Winner isn't here: take them off the wheel and spin again.
-      state.entries.splice(state.winnerIndex, 1);
-      state.winnerIndex = -1;
-      drawWheel();
-      if (state.entries.length === 0) {
-        $("hub").disabled = true;
-        $("wheelHint").textContent = "No names left on the wheel.";
-      } else {
-        setTimeout(spin, 400);
-      }
-      return;
+    // Either way they come off the wheel; only winners who are here get logged.
+    state.entries.splice(state.winnerIndex, 1);
+    state.winnerIndex = -1;
+    drawWheel();
+    updateSummary();
+    if (!redraw) {
+      state.winners.push(w);
+      renderWinners();
     }
 
-    state.winnerIndex = -1;
-    $("hub").disabled = false;
-    $("wheelHint").textContent = `🏆 Winner: ${w.name}${w.account ? ` (${w.account})` : ""}`;
+    const left = state.entries.length;
+    if (left === 0) {
+      $("hub").disabled = true;
+      $("wheelHint").textContent = "No names left on the wheel.";
+    } else if (redraw) {
+      setTimeout(spin, 400); // winner isn't here: spin again straight away
+    } else {
+      $("hub").disabled = false;
+      $("wheelHint").textContent = `${left} name${left === 1 ? "" : "s"} left. Click the wheel (or press Space) to spin again!`;
+    }
   }
 
   // ---------- Events ----------
@@ -619,7 +658,9 @@
 
   $("newFileBtn").addEventListener("click", () => {
     if (state.spinning || state.building) return;
+    if (state.winners.length && !confirm("Load another file? The winners list will be cleared.")) return;
     state.entries = [];
+    state.winners = [];
     showView("upload");
   });
 
